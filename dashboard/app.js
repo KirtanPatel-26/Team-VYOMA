@@ -450,6 +450,14 @@ async function fetchLiveStats() {
       liveTheftBadge.style.display = activeThefts > 0 ? "inline-block" : "none";
     }
 
+    // 9. AI Anomalies & Triggers Header Live Status
+    const activeAnomalies = data.active_anomaly_count !== undefined ? data.active_anomaly_count : 0;
+    const anomalyBadge = document.getElementById("tabAnomalyCount");
+    if (anomalyBadge) {
+      anomalyBadge.textContent = activeAnomalies;
+      anomalyBadge.style.display = activeAnomalies > 0 ? "inline-block" : "none";
+    }
+
   } catch (err) {
     console.warn("Live stats polling error:", err);
   }
@@ -3314,7 +3322,7 @@ async function evaluateAnomaliesLive() {
         inventory_counts: {},
         tracked_persons: [],
         queue_count: 0,
-        camera_health: { laplacian_var: 120.0, is_blocked: False, ssim: 0.98 }
+        camera_health: { laplacian_var: 120.0, is_blocked: false, ssim: 0.98 }
       })
     });
     const data = await res.json();

@@ -22,13 +22,15 @@ class ObjectDetector:
         confidence: float = 0.35,
         product_model_path: Optional[str] = None,
         confidence_threshold: float = 0.75,
-        products_config: Optional[str] = None
+        products_config: Optional[str] = None,
+        enable_custom_detection: bool = False
     ):
         self.confidence = confidence
         self.confidence_threshold = confidence_threshold
         self.model_path = model_path
         self.product_model_path = product_model_path or "models/trained/best.pt"
         self.products_config = products_config or "configs/products.yaml"
+        self.enable_custom_detection = enable_custom_detection
 
         self.person_model = None
         self.product_detector = None
@@ -42,8 +44,9 @@ class ObjectDetector:
         # 1. Initialize Person Detection Model (YOLO11n)
         self._init_person_model()
 
-        # 2. Attempt loading trained custom SKU detector
-        self._init_product_detector()
+        # 2. Only attempt loading trained custom SKU detector if explicitly enabled
+        if self.enable_custom_detection:
+            self._init_product_detector()
 
     def set_active_source(self, source):
         """
@@ -76,8 +79,8 @@ class ObjectDetector:
             if self.owlv2_detector is not None:
                 self.owlv2_detector.start_worker()
 
-            # Dynamically initialize custom SKU detector if trained checkpoint exists
-            if self.product_detector is None and Path(self.product_model_path).exists():
+            # Custom SKU detector is only initialized if explicitly enabled
+            if self.enable_custom_detection and self.product_detector is None and Path(self.product_model_path).exists():
                 try:
                     from inference.product_detector import ProductDetector
                     self.product_detector = ProductDetector(
@@ -85,12 +88,12 @@ class ObjectDetector:
                         config_path=self.products_config,
                         confidence_threshold=self.confidence_threshold
                     )
-                    print(f"[Detector] [OK] Loaded custom trained SKU model for fast webcam detection.")
+                    print(f"[Detector] [OK] Loaded custom trained SKU model.")
                 except Exception as err:
                     print(f"[Detector] Note: Could not load trained SKU model: {err}")
         else:
             # Uploaded video (*.mp4) - strictly preserves existing YOLO11n real edge CV or trained model
-            if self.product_detector is not None:
+            if self.enable_custom_detection and self.product_detector is not None:
                 self.mode = "TRAINED_MODEL"
             else:
                 self.mode = "REAL_EDGE_CV"
@@ -457,25 +460,18 @@ class ObjectDetector:
             product_dets = self.demo_simulator.detect_products(frame)
             all_detections.extend(product_dets)
 
-        # B. Live Webcam (PC webcam 0 or USB webcams 1, 2, ...) -> Fast Custom YOLO11 + Background OWLv2
+        # B. Live Webcam (PC webcam 0 or USB webcams 1, 2, ...) -> OWLv2 Zero-Shot AI (Clean detection without false custom boxes)
         elif self.is_webcam:
-            # Ensure custom trained model is loaded
-            if self.product_detector is None:
-                self._init_product_detector()
-
-            # 1. Fast real-time SKU detection via custom trained model (30+ FPS, <25ms latency)
-            if self.product_detector is not None:
+            if self.enable_custom_detection and self.product_detector is not None:
                 try:
                     fast_dets = self.product_detector.detect(frame, conf_thresh=0.20)
                     all_detections.extend(fast_dets)
                 except Exception as e:
-                    print(f"[Detector] Error in fast webcam SKU detection: {e}")
+                    print(f"[Detector] Error in custom webcam SKU detection: {e}")
 
-            # 2. Preserve OWLv2 Zero-Shot Detector running asynchronously in background
             if self.owlv2_detector is not None:
                 self.owlv2_detector.update_frame(frame)
                 owl_dets = self.owlv2_detector.get_detections()
-                # Merge OWLv2 detections without duplicating already detected items
                 if not all_detections:
                     all_detections.extend(owl_dets)
                 else:
@@ -495,8 +491,8 @@ class ObjectDetector:
                         if not overlap:
                             all_detections.append(od)
 
-        # C. Uploaded Video / Custom Real Video File -> Run custom trained model if present
-        elif self.product_detector is not None:
+        # C. Uploaded Video / Custom Real Video File -> Run custom trained model only if enabled
+        elif self.enable_custom_detection and self.product_detector is not None:
             try:
                 product_dets = self.product_detector.detect(frame)
                 all_detections.extend(product_dets)

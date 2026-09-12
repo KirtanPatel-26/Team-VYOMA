@@ -328,7 +328,7 @@ def background_ai_pipeline():
         else:
             # Live Webcam / Uploaded Video HUD Overlay
             src_name = f"WEBCAM (DEVICE {camera.source})" if camera.is_numeric else f"VIDEO: {Path(str(camera.source)).name}"
-            src_ai = "CUSTOM YOLO11 + OWLv2 HYBRID" if camera.is_numeric else "YOLO11n REAL-TIME"
+            src_ai = "OWLv2 ZERO-SHOT AI" if camera.is_numeric else "YOLO11n REAL-TIME"
             src_label = f"LIVE {src_name} | {src_ai}"
             # Top Banner
             cv2.rectangle(annotated, (10, 10), (620, 48), (15, 23, 42), -1)
@@ -368,16 +368,12 @@ def background_ai_pipeline():
                     dwell = tracker.get_dwell_time(d.track_id)
                     label = f"Shopper #{d.track_id} ({dwell:.0f}s)"
             else:
-                is_trained = getattr(d, 'source', None) == "trained_sku_model"
                 is_owl = getattr(d, 'source', None) == "owlv2_zero_shot"
-                if is_trained:
-                    color = (0, 255, 0)  # Bright Green for Custom YOLO
-                    tag = " [CUSTOM YOLO]"
-                elif is_owl:
-                    color = (0, 240, 255)  # Cyan for OWLv2
+                if is_owl:
+                    color = (0, 240, 255)  # Cyan for OWLv2 Zero-Shot AI
                     tag = " [OWLv2]"
                 else:
-                    color = (0, 255, 100)
+                    color = (255, 165, 0)  # Amber for Monitored SKUs (eliminates misleading green boxes)
                     tag = ""
                 sku_str = f"[{d.sku_id}] " if getattr(d, 'sku_id', None) else ""
                 label = f"{sku_str}{d.product_name or d.class_name}{tag} {d.confidence:.2f}"
@@ -501,7 +497,8 @@ def get_live_stats():
             "theft_metrics": local_db.get_theft_metrics() if local_db else {},
             "active_theft_count": len([e for e in getattr(state, 'theft_events', {}).values() if e.get("status") == "ACTIVE"]) if not (camera.is_numeric or getattr(detector, "is_webcam", False)) else 0,
             "is_webcam": camera.is_numeric or getattr(detector, "is_webcam", False),
-            "theft_detection_active": not (camera.is_numeric or getattr(detector, "is_webcam", False))
+            "theft_detection_active": not (camera.is_numeric or getattr(detector, "is_webcam", False)),
+            "active_anomaly_count": anomaly_engine.get_stats().get("active", 0) if "anomaly_engine" in globals() and anomaly_engine else 0
         }
 
 @router.get("/brain/recommendations")
@@ -642,7 +639,7 @@ def get_system_integrity():
             },
             {
                 "module": "SKU & Product Detection",
-                "method": "Custom YOLOv8 Product Detector (Trained or Real-Time Sim fallback)",
+                "method": "Retail SKU & Product Detector (OWLv2 / Edge CV)",
                 "source": detector.mode,
                 "latency": "18-28ms",
                 "edge_device": "On-Device Edge Inference",
