@@ -1,0 +1,92 @@
+[
+  {
+    "id": "SKU001",
+    "name": "Fanta Orange",
+    "category": "Beverages",
+    "price": 35.0,
+    "cost_price": 22.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Beverages & Juices"
+  },
+  {
+    "id": "SKU002",
+    "name": "Pringles Original",
+    "category": "Chips",
+    "price": 110.0,
+    "cost_price": 75.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Snacks & Biscuits"
+  },
+  {
+    "id": "SKU003",
+    "name": "Oreo",
+    "category": "Biscuits",
+    "price": 30.0,
+    "cost_price": 18.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Snacks & Biscuits"
+  },
+  {
+    "id": "SKU004",
+    "name": "Amul Taaza",
+    "category": "Milk",
+    "price": 30.0,
+    "cost_price": 24.0,
+    "minimum_stock": 3,
+    "target_shelf_zone": "Dairy & Essentials"
+  },
+  {
+    "id": "SKU005",
+    "name": "Real Orange Juice",
+    "category": "Juices",
+    "price": 40.0,
+    "cost_price": 26.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Beverages & Juices"
+  },
+  {
+    "id": "SKU006",
+    "name": "Dove Soap",
+    "category": "Soap",
+    "price": 40.0,
+    "cost_price": 25.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Dairy & Essentials"
+  },
+  {
+    "id": "SKU007",
+    "name": "Coca Cola",
+    "category": "Beverages",
+    "price": 40.0,
+    "cost_price": 25.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Beverages & Juices"
+  },
+  {
+    "id": "SKU008",
+    "name": "Lays Classic",
+    "category": "Chips",
+    "price": 20.0,
+    "cost_price": 12.0,
+    "minimum_stock": 3,
+    "target_shelf_zone": "Snacks & Biscuits"
+  },
+  {
+    "id": "SKU009",
+    "name": "Dairy Milk",
+    "category": "Chocolates",
+    "price": 50.0,
+    "cost_price": 32.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Snacks & Biscuits"
+  },
+  {
+    "id": "SKU010",
+    "name": "Colgate Paste",
+    "category": "Personal Care",
+    "price": 55.0,
+    "cost_price": 36.0,
+    "minimum_stock": 2,
+    "target_shelf_zone": "Dairy & Essentials"
+  }
+]

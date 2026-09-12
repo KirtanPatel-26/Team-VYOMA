@@ -1,0 +1,38 @@
+# Training Hyperparameters for Custom SKU Object Detection
+# Tuned for edge retail packaging recognition (bottles, cans, boxes, pouches)
+
+# Model architecture (transfer learning base checkpoint)
+model: "yolo11n.pt"  # options: yolo11n.pt, yolo11s.pt, yolo11m.pt
+
+# Training schedule
+epochs: 100
+batch: 16
+imgsz: 640
+patience: 15
+save_period: 10
+workers: 4
+
+# Optimizer settings
+optimizer: "auto"     # AdamW or SGD
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+
+# Retail Packaging Data Augmentations
+hsv_h: 0.015          # minor hue shift (brands retain color identity)
+hsv_s: 0.7            # saturation jitter for indoor supermarket lighting
+hsv_v: 0.4            # brightness variation (shelf shadows, spotlights)
+degrees: 10.0         # slight tilt on shelf
+translate: 0.1        # slight translation
+scale: 0.5            # zoom in/out (distance from shelf camera)
+fliplr: 0.5           # horizontal flip
+flipud: 0.0           # DO NOT vertically flip (products sit upright on shelves)
+mosaic: 1.0           # multi-object context
+mixup: 0.15           # occlusion robustness
+erasing: 0.2          # partial shelf occlusion simulation
+
+# Output directories
+project: "models/training_runs"
+name: "sku_model"

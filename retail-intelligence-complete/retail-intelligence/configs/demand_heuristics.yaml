@@ -1,0 +1,74 @@
+# Category-level weather elasticity heuristics for Retail Intelligence Platform
+# Used transparently when fewer than 14 days of sales ledger history are available.
+
+Beverages:
+  hot_day_threshold_c: 28.0
+  hot_day_multiplier: 1.65
+  rainy_day_multiplier: 0.85
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 0.75
+  weekend_multiplier: 1.30
+
+Chips:
+  hot_day_threshold_c: 32.0
+  hot_day_multiplier: 0.95
+  rainy_day_multiplier: 1.35
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.20
+  weekend_multiplier: 1.45
+
+Biscuits:
+  hot_day_threshold_c: 30.0
+  hot_day_multiplier: 0.90
+  rainy_day_multiplier: 1.30
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.15
+  weekend_multiplier: 1.20
+
+Milk:
+  hot_day_threshold_c: 30.0
+  hot_day_multiplier: 0.90  # Spoilage sensitive; avoid overstocking in heat
+  rainy_day_multiplier: 1.00
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.05
+  weekend_multiplier: 1.15
+
+Juices:
+  hot_day_threshold_c: 28.0
+  hot_day_multiplier: 1.55
+  rainy_day_multiplier: 0.80
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 0.70
+  weekend_multiplier: 1.35
+
+Soap:
+  hot_day_threshold_c: 30.0
+  hot_day_multiplier: 1.00
+  rainy_day_multiplier: 1.00
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.00
+  weekend_multiplier: 1.05
+
+Chocolates:
+  hot_day_threshold_c: 30.0
+  hot_day_multiplier: 0.80  # Heat melting caution; lower impulse checkout
+  rainy_day_multiplier: 1.25
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.30
+  weekend_multiplier: 1.40
+
+Personal Care:
+  hot_day_threshold_c: 30.0
+  hot_day_multiplier: 1.00
+  rainy_day_multiplier: 1.00
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.00
+  weekend_multiplier: 1.05
+
+Default:
+  hot_day_threshold_c: 30.0
+  hot_day_multiplier: 1.10
+  rainy_day_multiplier: 1.00
+  cold_day_threshold_c: 18.0
+  cold_day_multiplier: 1.00
+  weekend_multiplier: 1.10

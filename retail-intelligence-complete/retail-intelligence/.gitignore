@@ -1,0 +1,10 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+data/retail.db
+output/*
+!output/.gitkeep
+datasets/images/*
+datasets/labels/*
