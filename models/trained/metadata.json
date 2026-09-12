@@ -1,0 +1,35 @@
+{
+  "model_type": "YOLO11_Retail_SKU",
+  "base_model": "yolo11n.pt",
+  "classes": {
+    "0": "Fanta Orange",
+    "1": "Pringles Original",
+    "2": "Oreo",
+    "3": "Amul Taaza",
+    "4": "Real Orange Juice",
+    "5": "Dove Soap",
+    "6": "Coca Cola",
+    "7": "Lays Classic",
+    "8": "Dairy Milk",
+    "9": "Colgate Paste"
+  },
+  "sku_ids": {
+    "0": "SKU001",
+    "1": "SKU002",
+    "2": "SKU003",
+    "3": "SKU004",
+    "4": "SKU005",
+    "5": "SKU006",
+    "6": "SKU007",
+    "7": "SKU008",
+    "8": "SKU009",
+    "9": "SKU010"
+  },
+  "nc": 10,
+  "epochs": 15,
+  "batch_size": 16,
+  "imgsz": 640,
+  "training_duration_seconds": 723.04,
+  "training_device": "cpu",
+  "timestamp": "2026-09-12 14:46:15"
+}

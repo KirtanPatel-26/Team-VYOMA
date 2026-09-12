@@ -1,0 +1,36 @@
+{
+  "status": "TRAINED",
+  "algorithm": "RandomForestRegressor (scikit-learn)",
+  "location": "Morbi, Gujarat",
+  "coordinates": {
+    "lat": 22.8173,
+    "lon": 70.8377
+  },
+  "detected_from": "Store Location (Morbi, Gujarat)",
+  "trained_at": "2026-09-11T11:54:56.853291",
+  "training_days": 37,
+  "total_samples": 370,
+  "mae": 2.95,
+  "rmse": 3.77,
+  "r2_score": -0.092,
+  "sku_mapping": {
+    "SKU001": 0,
+    "SKU002": 1,
+    "SKU003": 2,
+    "SKU004": 3,
+    "SKU005": 4,
+    "SKU006": 5,
+    "SKU007": 6,
+    "SKU008": 7,
+    "SKU009": 8,
+    "SKU010": 9
+  },
+  "features": [
+    "sku_idx",
+    "day_of_week",
+    "is_weekend",
+    "temperature_c",
+    "is_rain",
+    "rolling_7d_avg"
+  ]
+}

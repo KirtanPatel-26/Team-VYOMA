@@ -1,0 +1,15 @@
+ultralytics
+opencv-python
+numpy
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+supabase
+pyyaml
+psutil
+python-multipart
+onnx
+onnxsim
+pytest
+transformers

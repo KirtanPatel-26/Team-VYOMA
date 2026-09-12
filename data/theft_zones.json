@@ -1,0 +1,310 @@
+{
+  "camera_test": [
+    {
+      "zone_id": "SHELF_A",
+      "name": "Snacks & Biscuits",
+      "zone_type": "SHELF_ZONE",
+      "coordinates": [
+        40,
+        40,
+        520,
+        270
+      ],
+      "bbox": [
+        40,
+        40,
+        520,
+        270
+      ],
+      "metadata": {
+        "category": "Snacks",
+        "expected_skus": [
+          "SKU002",
+          "SKU003",
+          "SKU008",
+          "SKU009"
+        ],
+        "expected_names": [
+          "Pringles Original",
+          "Oreo",
+          "Lays Classic",
+          "Dairy Milk"
+        ]
+      }
+    },
+    {
+      "zone_id": "SHELF_B",
+      "name": "Beverages & Juices",
+      "zone_type": "SHELF_ZONE",
+      "coordinates": [
+        40,
+        330,
+        520,
+        580
+      ],
+      "bbox": [
+        40,
+        330,
+        520,
+        580
+      ],
+      "metadata": {
+        "category": "Beverages",
+        "expected_skus": [
+          "SKU001",
+          "SKU005",
+          "SKU007"
+        ],
+        "expected_names": [
+          "Fanta Orange",
+          "Real Orange Juice",
+          "Coca Cola"
+        ]
+      }
+    },
+    {
+      "zone_id": "SHELF_C",
+      "name": "Dairy & Essentials",
+      "zone_type": "SHELF_ZONE",
+      "coordinates": [
+        800,
+        40,
+        1240,
+        270
+      ],
+      "bbox": [
+        800,
+        40,
+        1240,
+        270
+      ],
+      "metadata": {
+        "category": "Dairy",
+        "expected_skus": [
+          "SKU004",
+          "SKU006",
+          "SKU010"
+        ],
+        "expected_names": [
+          "Amul Taaza",
+          "Dove Soap",
+          "Colgate Paste"
+        ]
+      }
+    },
+    {
+      "zone_id": "CHECKOUT_01",
+      "name": "Checkout & POS Counters",
+      "zone_type": "CHECKOUT_ZONE",
+      "coordinates": [
+        830,
+        360,
+        1240,
+        680
+      ],
+      "bbox": [
+        830,
+        360,
+        1240,
+        680
+      ],
+      "metadata": {
+        "counters": 2
+      }
+    },
+    {
+      "zone_id": "EXIT_01",
+      "name": "Exit Point (Between Shelf C & Billing Counter)",
+      "zone_type": "EXIT_ZONE",
+      "coordinates": [
+        760,
+        270,
+        1280,
+        359
+      ],
+      "bbox": [
+        760,
+        270,
+        1280,
+        359
+      ],
+      "metadata": {
+        "gate": "Corridor between Shelf C and Billing Counter"
+      }
+    },
+    {
+      "zone_id": "ENTRANCE_01",
+      "name": "Store Entrance Gate",
+      "zone_type": "AISLE_ZONE",
+      "coordinates": [
+        0,
+        200,
+        120,
+        720
+      ],
+      "bbox": [
+        0,
+        200,
+        120,
+        720
+      ],
+      "metadata": {
+        "gate": "Main Entrance"
+      }
+    }
+  ],
+  "default": [
+    {
+      "zone_id": "SHELF_A",
+      "name": "Snacks & Biscuits",
+      "zone_type": "SHELF_ZONE",
+      "coordinates": [
+        40,
+        40,
+        520,
+        270
+      ],
+      "bbox": [
+        40,
+        40,
+        520,
+        270
+      ],
+      "metadata": {
+        "category": "Snacks",
+        "expected_skus": [
+          "SKU002",
+          "SKU003",
+          "SKU008",
+          "SKU009"
+        ],
+        "expected_names": [
+          "Pringles Original",
+          "Oreo",
+          "Lays Classic",
+          "Dairy Milk"
+        ]
+      }
+    },
+    {
+      "zone_id": "SHELF_B",
+      "name": "Beverages & Juices",
+      "zone_type": "SHELF_ZONE",
+      "coordinates": [
+        40,
+        330,
+        520,
+        580
+      ],
+      "bbox": [
+        40,
+        330,
+        520,
+        580
+      ],
+      "metadata": {
+        "category": "Beverages",
+        "expected_skus": [
+          "SKU001",
+          "SKU005",
+          "SKU007"
+        ],
+        "expected_names": [
+          "Fanta Orange",
+          "Real Orange Juice",
+          "Coca Cola"
+        ]
+      }
+    },
+    {
+      "zone_id": "SHELF_C",
+      "name": "Dairy & Essentials",
+      "zone_type": "SHELF_ZONE",
+      "coordinates": [
+        800,
+        40,
+        1240,
+        270
+      ],
+      "bbox": [
+        800,
+        40,
+        1240,
+        270
+      ],
+      "metadata": {
+        "category": "Dairy",
+        "expected_skus": [
+          "SKU004",
+          "SKU006",
+          "SKU010"
+        ],
+        "expected_names": [
+          "Amul Taaza",
+          "Dove Soap",
+          "Colgate Paste"
+        ]
+      }
+    },
+    {
+      "zone_id": "CHECKOUT_01",
+      "name": "Checkout & POS Counters",
+      "zone_type": "CHECKOUT_ZONE",
+      "coordinates": [
+        830,
+        360,
+        1240,
+        680
+      ],
+      "bbox": [
+        830,
+        360,
+        1240,
+        680
+      ],
+      "metadata": {
+        "counters": 2
+      }
+    },
+    {
+      "zone_id": "EXIT_01",
+      "name": "Exit Point (Between Shelf C & Billing Counter)",
+      "zone_type": "EXIT_ZONE",
+      "coordinates": [
+        760,
+        270,
+        1280,
+        359
+      ],
+      "bbox": [
+        760,
+        270,
+        1280,
+        359
+      ],
+      "metadata": {
+        "gate": "Corridor between Shelf C and Billing Counter"
+      }
+    },
+    {
+      "zone_id": "ENTRANCE_01",
+      "name": "Store Entrance Gate",
+      "zone_type": "AISLE_ZONE",
+      "coordinates": [
+        0,
+        200,
+        120,
+        720
+      ],
+      "bbox": [
+        0,
+        200,
+        120,
+        720
+      ],
+      "metadata": {
+        "gate": "Main Entrance"
+      }
+    }
+  ]
+}
