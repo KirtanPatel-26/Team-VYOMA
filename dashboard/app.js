@@ -75,6 +75,8 @@ function switchTab(tabId) {
     fetchSupabaseDiagnostics();
   } else if (tabId === "theft") {
     fetchTheftIncidents();
+  } else if (tabId === "anomalies") {
+    fetchAnomaliesList();
   }
 }
 
@@ -3147,4 +3149,223 @@ async function saveTheftConfig(e) {
     alert("Error saving configuration: " + err.message);
   }
 }
+
+// =========================================================================
+// AI ANOMALY DETECTION & CUSTOM TRIGGER ENGINE DASHBOARD CONTROLLER
+// =========================================================================
+
+let activeAnomaliesData = [];
+
+async function fetchAnomaliesList() {
+  try {
+    const sevFilter = document.getElementById("anomFilterSeverity") ? document.getElementById("anomFilterSeverity").value : "ALL";
+    const statFilter = document.getElementById("anomFilterStatus") ? document.getElementById("anomFilterStatus").value : "ALL";
+
+    let url = `/api/anomalies/list?status=${encodeURIComponent(statFilter)}&severity=${encodeURIComponent(sevFilter)}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    if (data.success && Array.isArray(data.anomalies)) {
+      activeAnomaliesData = data.anomalies;
+      renderAnomaliesTable(activeAnomaliesData);
+    }
+
+    // Also update stats
+    const statsRes = await fetch("/api/anomalies/stats");
+    if (statsRes.ok) {
+      const statsData = await statsRes.json();
+      if (statsData.success && statsData.stats) {
+        updateAnomalyStatsUI(statsData.stats);
+      }
+    }
+  } catch (err) {
+    console.warn("fetchAnomaliesList note:", err);
+  }
+}
+
+function updateAnomalyStatsUI(stats) {
+  const elCrit = document.getElementById("anomKpiCritical");
+  const elHigh = document.getElementById("anomKpiHigh");
+  const elMed = document.getElementById("anomKpiMedium");
+  const elActive = document.getElementById("anomKpiActive");
+  const elResolved = document.getElementById("anomKpiResolved");
+  const elAck = document.getElementById("anomKpiAck");
+  const elBadge = document.getElementById("tabAnomalyCount");
+  const elTotalBadge = document.getElementById("anomTotalBadge");
+
+  if (elCrit) elCrit.textContent = stats.critical || 0;
+  if (elHigh) elHigh.textContent = stats.high || 0;
+  if (elMed) elMed.textContent = stats.medium || 0;
+  if (elActive) elActive.textContent = stats.active || 0;
+  if (elResolved) elResolved.textContent = stats.resolved || 0;
+  if (elAck) elAck.textContent = stats.acknowledged || 0;
+
+  if (elBadge) {
+    const count = stats.active || 0;
+    elBadge.textContent = count;
+    elBadge.style.display = count > 0 ? "inline-block" : "none";
+  }
+
+  if (elTotalBadge) {
+    elTotalBadge.textContent = `${stats.total || 0} Incidents`;
+  }
+}
+
+function renderAnomaliesTable(anomalies) {
+  const tbody = document.getElementById("anomaliesTableBody");
+  if (!tbody) return;
+
+  if (anomalies.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">
+          No anomalies match the current filter.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = anomalies.map(a => {
+    const isCritical = a.severity === "Critical";
+    const isHigh = a.severity === "High";
+    const isMed = a.severity === "Medium";
+
+    const sevColor = isCritical ? "#ef4444" : (isHigh ? "#f97316" : (isMed ? "#f59e0b" : "#38bdf8"));
+    const sevBg = isCritical ? "rgba(239, 68, 68, 0.15)" : (isHigh ? "rgba(249, 115, 22, 0.15)" : "rgba(245, 158, 11, 0.15)");
+
+    const isAck = a.status === "Acknowledged";
+    const isRes = a.status === "Resolved";
+
+    const timeStr = a.created_at ? new Date(a.created_at).toLocaleTimeString() : "";
+
+    return `
+      <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+        <td>
+          <div style="font-weight: 700; color: #f8fafc;">${escapeHtml(a.anomaly_type.replace(/_/g, " "))}</div>
+          <div style="font-size: 10px; color: #64748b;">ID: ${escapeHtml(a.anomaly_id.substring(0, 8))}...</div>
+        </td>
+        <td>
+          <span class="badge-mini" style="background: ${sevBg}; color: ${sevColor}; border: 1px solid ${sevColor}; font-weight: 800;">
+            ${escapeHtml(a.severity)}
+          </span>
+        </td>
+        <td>
+          <div style="color: #cbd5e1; font-weight: 600;">${escapeHtml(a.zone_id || "Zone")}</div>
+          <div style="font-size: 10px; color: #64748b;">${escapeHtml(a.camera_id || "CAM_01")}</div>
+        </td>
+        <td style="max-width: 320px;">
+          <div style="color: #e2e8f0; font-size: 12px; line-height: 1.4;">${escapeHtml(a.description)}</div>
+          <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">⏰ ${timeStr}</div>
+        </td>
+        <td>
+          <span style="font-family: var(--font-mono); color: #34d399; font-weight: 700;">
+            ${Math.round((a.confidence_score || 0.95) * 100)}%
+          </span>
+        </td>
+        <td>
+          <span style="font-size: 11px; font-weight: 700; color: ${isRes ? '#34d399' : (isAck ? '#fbbf24' : '#ef4444')};">
+            ${escapeHtml(a.status)}
+          </span>
+        </td>
+        <td style="text-align: right; white-space: nowrap;">
+          ${!isAck && !isRes ? `
+            <button onclick="handleAcknowledgeAnomaly('${a.anomaly_id}')" class="btn-sm" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; margin-right: 4px;">
+              Acknowledge
+            </button>
+          ` : ''}
+          ${!isRes ? `
+            <button onclick="handleResolveAnomaly('${a.anomaly_id}')" class="btn-sm" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer;">
+              Resolve
+            </button>
+          ` : '<span style="color: #64748b; font-size: 11px;">Completed</span>'}
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function simulateAll13Anomalies() {
+  try {
+    const btn = event?.target;
+    if (btn) btn.disabled = true;
+    const res = await fetch("/api/anomalies/simulate_all_13", { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      alert(`🚨 Successfully simulated all ${data.simulated_anomalies_count} distinct retail anomalies!`);
+      await fetchAnomaliesList();
+    }
+  } catch (err) {
+    alert("Simulation error: " + err.message);
+  } finally {
+    const btn = event?.target;
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function evaluateAnomaliesLive() {
+  try {
+    const res = await fetch("/api/anomalies/evaluate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        detections: [],
+        inventory_counts: {},
+        tracked_persons: [],
+        queue_count: 0,
+        camera_health: { laplacian_var: 120.0, is_blocked: False, ssim: 0.98 }
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`⚡ Current frame evaluated: ${data.detected_count} new anomalies detected.`);
+      await fetchAnomaliesList();
+    }
+  } catch (err) {
+    alert("Evaluation error: " + err.message);
+  }
+}
+
+async function handleAcknowledgeAnomaly(anomalyId) {
+  try {
+    const res = await fetch(`/api/anomalies/${anomalyId}/acknowledge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ operator: "Store Operations Manager" })
+    });
+    if (res.ok) {
+      fetchAnomaliesList();
+    }
+  } catch (err) {
+    console.warn("handleAcknowledgeAnomaly error:", err);
+  }
+}
+
+async function handleResolveAnomaly(anomalyId) {
+  const notes = prompt("Enter resolution notes:", "Investigated and cleared on site");
+  if (!notes) return;
+
+  try {
+    const res = await fetch(`/api/anomalies/${anomalyId}/resolve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ operator: "Store Operations Manager", notes: notes })
+    });
+    if (res.ok) {
+      fetchAnomaliesList();
+    }
+  } catch (err) {
+    console.warn("handleResolveAnomaly error:", err);
+  }
+}
+
+// Auto-poll anomalies every 5 seconds
+setInterval(() => {
+  const anomaliesTab = document.getElementById("tab-anomalies");
+  if (anomaliesTab && anomaliesTab.classList.contains("active")) {
+    fetchAnomaliesList();
+  }
+}, 5000);
+
 

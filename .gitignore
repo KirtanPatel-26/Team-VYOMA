@@ -3,6 +3,9 @@ venv/
 __pycache__/
 *.pyc
 .env
+.env.*
+*.key
+*.pem
 data/retail.db
 output/*
 !output/.gitkeep

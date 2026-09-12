@@ -2,6 +2,8 @@ import os
 import yaml
 from pathlib import Path
 from datetime import datetime
+from app.security.encryption import encrypt_data, decrypt_data
+from app.security.sanitizer import mask_credential, sanitize_rtsp_url
 
 class SupabaseDatabase:
     """
@@ -400,14 +402,33 @@ class SupabaseDatabase:
 
             # 6. Sync POS Sales Transactions
             if unsynced.get("sales"):
-                sales_payloads = [{
-                    "store_code": self.store_code,
-                    "transaction_id": r["transaction_id"],
-                    "total_amount": float(r["total_amount"]),
-                    "payment_method": r.get("payment_method", "UPI"),
-                    "cashier": r.get("cashier", "Self Checkout 01"),
-                    "timestamp": r["timestamp"] if "T" in str(r["timestamp"]) else now_iso
-                } for r in unsynced["sales"]]
+                sales_payloads = []
+                for r in unsynced["sales"]:
+                    store = str(r.get("store_code") or self.store_code)
+                    cashier_raw = r.get("cashier", "Self Checkout 01")
+                    payload = {
+                        "store_code": store,
+                        "transaction_id": r["transaction_id"],
+                        "total_amount": float(r["total_amount"]),
+                        "payment_method": r.get("payment_method", "UPI"),
+                        "cashier": cashier_raw,
+                        "timestamp": r["timestamp"] if "T" in str(r["timestamp"]) else now_iso
+                    }
+                    # Apply encryption layer ONLY for STORE_002, strictly preserving STORE_001
+                    if store.upper() == "STORE_002":
+                        try:
+                            payload["cashier_encrypted"] = encrypt_data(cashier_raw)
+                            payload["cashier"] = mask_credential(cashier_raw)
+                            if r.get("customer_email"):
+                                payload["customer_email_encrypted"] = encrypt_data(r.get("customer_email"))
+                            if r.get("customer_phone"):
+                                payload["customer_phone_encrypted"] = encrypt_data(r.get("customer_phone"))
+                            if r.get("payment_details"):
+                                payload["payment_details_encrypted"] = encrypt_data(r.get("payment_details"))
+                        except Exception as enc_err:
+                            print(f"[Supabase Security] Encryption note for STORE_002: {enc_err}")
+
+                    sales_payloads.append(payload)
 
                 try:
                     self.client.table("sales_transactions").upsert(sales_payloads, on_conflict="transaction_id").execute()
@@ -672,6 +693,100 @@ class SupabaseDatabase:
         except Exception as e:
             print(f"[Supabase] Theft event sync note: {e}")
             return False
+
+    def insert_anomaly_event(self, anomaly_data: dict) -> bool:
+        """Inserts an anomaly event directly into the enterprise anomalies table."""
+        if not self.enabled:
+            return False
+        try:
+            row = {
+                "anomaly_type": anomaly_data.get("anomaly_type"),
+                "severity": anomaly_data.get("severity", "Medium"),
+                "camera_id": anomaly_data.get("camera_id", "CAM_01"),
+                "zone_id": anomaly_data.get("zone_id", "STORE_FLOOR"),
+                "product_id": anomaly_data.get("product_id"),
+                "product_name": anomaly_data.get("product_name"),
+                "person_id": anomaly_data.get("person_id"),
+                "description": anomaly_data.get("description", "Anomaly detected"),
+                "confidence_score": float(anomaly_data.get("confidence_score", 0.95)),
+                "status": anomaly_data.get("status", "Active"),
+                "metadata": anomaly_data.get("metadata", {}),
+                "snapshot_url": anomaly_data.get("snapshot_url")
+            }
+            self.client.table("anomalies").insert(row).execute()
+            return True
+        except Exception as e:
+            print(f"[Supabase] Anomaly insert note: {e}")
+            return False
+
+    def save_store002_camera_config(
+        self,
+        camera_id: str,
+        camera_name: str,
+        rtsp_url: str,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        location_zone: str = "Checkout Zone",
+        stream_type: str = "RTSP"
+    ) -> dict:
+        """
+        Stores camera config for STORE_002 with application-level Fernet encryption.
+        Raw password and full RTSP URL credentials are encrypted before insertion into Supabase.
+        """
+        if not self.enabled:
+            return {"success": False, "message": "Supabase client not connected."}
+
+        try:
+            masked = sanitize_rtsp_url(rtsp_url)
+            row = {
+                "store_code": "STORE_002",
+                "camera_id": camera_id,
+                "camera_name": camera_name,
+                "location_zone": location_zone,
+                "stream_type": stream_type,
+                "rtsp_url_encrypted": encrypt_data(rtsp_url),
+                "camera_username_encrypted": encrypt_data(username) if username else None,
+                "camera_password_encrypted": encrypt_data(password) if password else None,
+                "rtsp_url_masked": masked,
+                "status": "ONLINE"
+            }
+            self.client.table("camera_configs").upsert(row, on_conflict="store_code,camera_id").execute()
+            return {"success": True, "camera_id": camera_id, "camera_name": camera_name, "masked_url": masked}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def get_store002_camera_configs(self, decrypt_for_internal_stream: bool = False) -> list:
+        """
+        Fetches camera configs for STORE_002.
+        - If decrypt_for_internal_stream=False (for API/UI): NEVER decrypts or returns credentials.
+        - If decrypt_for_internal_stream=True: Used strictly within edge CV process to construct connection.
+        """
+        if not self.enabled:
+            return []
+
+        try:
+            res = self.client.table("camera_configs").select("*").eq("store_code", "STORE_002").execute()
+            configs = []
+            for row in (res.data or []):
+                cfg = {
+                    "store_code": row.get("store_code"),
+                    "camera_id": row.get("camera_id"),
+                    "camera_name": row.get("camera_name"),
+                    "location_zone": row.get("location_zone"),
+                    "stream_type": row.get("stream_type"),
+                    "status": row.get("status"),
+                    "rtsp_url_masked": row.get("rtsp_url_masked") or sanitize_rtsp_url(row.get("rtsp_url_encrypted", ""))
+                }
+                if decrypt_for_internal_stream:
+                    # Internal edge pipeline only
+                    enc_url = row.get("rtsp_url_encrypted")
+                    if enc_url:
+                        cfg["_internal_rtsp_url"] = decrypt_data(enc_url)
+                configs.append(cfg)
+            return configs
+        except Exception as e:
+            print(f"[Supabase] Error reading camera configs: {e}")
+            return []
 
     def get_status(self):
         return {

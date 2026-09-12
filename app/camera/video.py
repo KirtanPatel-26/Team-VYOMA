@@ -2,6 +2,7 @@ import cv2
 import time
 import threading
 from pathlib import Path
+from app.security.sanitizer import sanitize_rtsp_url
 
 def scan_available_cameras(max_devices=4):
     """
@@ -94,8 +95,10 @@ class VideoCamera:
             return self.cap is not None and self.cap.isOpened()
 
     def get_source_info(self):
+        safe_source = sanitize_rtsp_url(self.source)
         return {
-            "source": str(self.source),
+            "source": safe_source,
+            "source_masked": safe_source,
             "is_webcam": self.is_numeric,
             "fps": round(self.fps, 1),
             "width": self.width,

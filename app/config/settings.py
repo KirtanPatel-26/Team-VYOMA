@@ -48,9 +48,14 @@ STORE_LON = float(os.getenv("STORE_LON", "70.8377"))
 
 # AI Copilot, RAG & Gemini LLM Settings
 KNOWLEDGE_DIR = DATA_DIR / "knowledge"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6LM2yejWDEWs2lGOyA9cHBBVX8pgdG9P5u-Wj_yjYTJIw")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 COPILOT_DEFAULT_MODE = os.getenv("COPILOT_DEFAULT_MODE", "offline")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+
+# Central Encryption Layer & Security Configuration
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
+ENCRYPTION_KEY_OLD = os.getenv("ENCRYPTION_KEY_OLD", "")
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 
 

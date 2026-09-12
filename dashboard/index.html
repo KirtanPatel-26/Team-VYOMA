@@ -240,6 +240,10 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
       Security / Theft Monitor <span class="alert-counter-badge" id="tabTheftCount" style="background: #f43f5e; display: none;">0</span>
     </button>
+    <button class="tab-btn" id="anomaliesTabBtn" onclick="switchTab('anomalies')" style="border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), transparent);">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      AI Anomalies & Triggers <span class="alert-counter-badge" id="tabAnomalyCount" style="background: #ef4444; display: none;">0</span>
+    </button>
     <button class="tab-btn" onclick="switchTab('cloud')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
       Supabase Sync
@@ -1511,6 +1515,111 @@
             <tbody id="syncQueueTableBody">
               <tr>
                 <td colspan="6" style="text-align: center; color: #64748b; padding: 20px;">Buffer is empty. All local edge data is in sync with cloud.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <!-- TAB 15: AI ANOMALIES & CUSTOM TRIGGER ENGINE -->
+    <div id="tab-anomalies" class="tab-content">
+      <!-- Header Banner & Action Center -->
+      <div class="glass-panel" style="margin-bottom: 16px; border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(15, 23, 42, 0.7));">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 24px;">🚨</span>
+              <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff;">
+                AI Anomaly Detection & Custom Trigger Engine
+              </h2>
+              <span class="badge-mini" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 700;">13 RULES ACTIVE</span>
+            </div>
+            <p class="panel-sub" style="margin-top: 4px; color: #cbd5e1;">
+              Autonomous multi-modal event detection: Shoplifting, Restricted Access, Loitering, Misplacements, Empty Shelves, Congestion & Tampering.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-primary" onclick="simulateAll13Anomalies()" style="background: linear-gradient(135deg, #dc2626, #ea580c); font-weight: 700; padding: 8px 16px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>🚨</span> Simulate All 13 Anomalies
+            </button>
+            <button class="btn-secondary" onclick="evaluateAnomaliesLive()" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); padding: 8px 14px; border-radius: 8px;">
+              <span>⚡</span> Evaluate Current Frame
+            </button>
+            <button class="btn-secondary" onclick="fetchAnomaliesList()" style="padding: 8px 14px; border-radius: 8px;">
+              <span>🔄</span> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Metrics -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px;">
+          <div class="kpi-box" style="background: rgba(15, 23, 42, 0.8); border: 1px solid #ef4444; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #f87171; font-weight: 700;">Critical Incidents</div>
+            <div style="font-size: 26px; font-weight: 900; color: #ef4444; margin-top: 4px;" id="anomKpiCritical">0</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Shoplifting & After-Hours</div>
+          </div>
+
+          <div class="kpi-box" style="background: rgba(15, 23, 42, 0.8); border: 1px solid #f97316; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #fb923c; font-weight: 700;">High Severity</div>
+            <div style="font-size: 26px; font-weight: 900; color: #f97316; margin-top: 4px;" id="anomKpiHigh">0</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Restricted Access & Stockouts</div>
+          </div>
+
+          <div class="kpi-box" style="background: rgba(15, 23, 42, 0.8); border: 1px solid #f59e0b; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #fbbf24; font-weight: 700;">Medium Severity</div>
+            <div style="font-size: 26px; font-weight: 900; color: #f59e0b; margin-top: 4px;" id="anomKpiMedium">0</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Loitering, Misplacements & Queues</div>
+          </div>
+
+          <div class="kpi-box" style="background: rgba(15, 23, 42, 0.8); border: 1px solid #6366f1; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #a5b4fc; font-weight: 700;">Active / Resolved</div>
+            <div style="font-size: 26px; font-weight: 900; color: #fff; margin-top: 4px;">
+              <span id="anomKpiActive">0</span> <span style="font-size: 14px; font-weight: 500; color: #94a3b8;">/ <span id="anomKpiResolved">0</span></span>
+            </div>
+            <div style="font-size: 11px; color: #34d399; margin-top: 2px;"><span id="anomKpiAck">0</span> Acknowledged</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Anomalies Feed & Interactive Table -->
+      <div class="glass-panel">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h3 style="margin: 0;">Real-Time Anomaly Stream</h3>
+            <select id="anomFilterSeverity" onchange="fetchAnomaliesList()" class="form-input" style="padding: 4px 10px; font-size: 11px; width: auto; background: rgba(15, 23, 42, 0.9);">
+              <option value="ALL">All Severities</option>
+              <option value="Critical">Critical Only</option>
+              <option value="High">High Only</option>
+              <option value="Medium">Medium Only</option>
+            </select>
+            <select id="anomFilterStatus" onchange="fetchAnomaliesList()" class="form-input" style="padding: 4px 10px; font-size: 11px; width: auto; background: rgba(15, 23, 42, 0.9);">
+              <option value="ALL">All Statuses</option>
+              <option value="Active">Active Only</option>
+              <option value="Acknowledged">Acknowledged Only</option>
+              <option value="Resolved">Resolved Only</option>
+            </select>
+          </div>
+          <span class="badge-mini" id="anomTotalBadge" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">0 Incidents</span>
+        </div>
+
+        <div style="max-height: 520px; overflow-y: auto; margin-top: 14px;">
+          <table class="data-table" style="width: 100%;">
+            <thead>
+              <tr>
+                <th>Anomaly Type</th>
+                <th>Severity</th>
+                <th>Camera & Zone</th>
+                <th>Incident Description</th>
+                <th>Confidence</th>
+                <th>Status</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="anomaliesTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">
+                  No anomalies detected yet. Click "Simulate All 13 Anomalies" to test the engine.
+                </td>
               </tr>
             </tbody>
           </table>
