@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
+from typing import Optional
 
 class LocalDatabase:
     """
