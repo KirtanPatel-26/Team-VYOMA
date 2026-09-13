@@ -1,0 +1,54 @@
+﻿# =========================================================
+# Docker Ignore - Smart Retail Intelligence Platform
+# =========================================================
+
+# Secrets and Environment Variables
+.env
+.env.*
+!.env.example
+
+# Git and Metadata
+.git/
+.gitignore
+
+# Python Environments & Cache
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local SQLite & Databases
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite*
+
+# Local Logs & Outputs
+output/
+scratch/
+*.log
+
+# Node & Frontend
+node_modules/
+.next/
+
+# Heavy Edge Models & Raw Datasets (not needed in cloud hub)
+models/*.pt
+models/trained/
+models/training_runs/
+datasets/
+videos/uploads/
+data/snapshots/
+*.zip
+
+# OS Artifacts
+.DS_Store
+Thumbs.db
