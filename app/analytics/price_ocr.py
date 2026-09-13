@@ -1,6 +1,12 @@
 import re
-import cv2
-import numpy as np
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+try:
+    import numpy as np
+except ImportError:
+    np = None
 import time
 
 class PriceTagOCR:
@@ -9,12 +15,13 @@ class PriceTagOCR:
     Uses EasyOCR to scan shelf-edge price labels and compare against ERP/POS master catalog.
     Detects pricing discrepancies, outdated promotional tags, and mislabeled products.
     """
-    def __init__(self, catalog=None):
+    def __init__(self, catalog=None, enabled=True):
         self.catalog = catalog
         self.reader = None
         self.last_run_time = 0
         self.cached_results = []
-        self._init_reader()
+        if enabled:
+            self._init_reader()
 
     def _init_reader(self):
         try:

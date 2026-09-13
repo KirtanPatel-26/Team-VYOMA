@@ -1,5 +1,8 @@
 import os
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import json
 import time
 import sys
@@ -7,14 +10,18 @@ import urllib.parse
 import threading
 from typing import Optional, List, Dict, Any
 from pathlib import Path
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 from fastapi import APIRouter, Response, Body, Query, UploadFile, File
 from fastapi.responses import StreamingResponse, PlainTextResponse, HTMLResponse, FileResponse
 
 from app.config.settings import (
     DATA_DIR, VIDEO_DIR, YOLO_MODEL, CONFIDENCE, PRODUCT_MODEL,
     CONFIDENCE_THRESHOLD, PRODUCTS_CONFIG,
-    QUEUE_ALERT_THRESHOLD, DB_PATH, SUPABASE_URL, SUPABASE_KEY, CAMERA_SOURCE
+    QUEUE_ALERT_THRESHOLD, DB_PATH, SUPABASE_URL, SUPABASE_KEY, CAMERA_SOURCE,
+    RUN_EDGE_AI, ENVIRONMENT
 )
 from app.products.catalog import ProductCatalog
 from app.products.matcher import ProductMatcher
@@ -23,7 +30,6 @@ from app.inventory.counter import InventoryCounter
 from app.inventory.smoothing import TemporalSmoother
 from app.inventory.stock import StockAnalyzer
 from app.inventory.alerts import build_alerts
-from app.detection.detector import ObjectDetector
 from app.detection.tracker import CentroidTracker
 from app.analytics.traffic import TrafficAnalytics
 from app.analytics.queue import QueueAnalytics
@@ -41,16 +47,26 @@ from app.billing.ledger import InventoryLedger
 from app.billing.pos import BillingService
 from app.database.local import LocalDatabase
 from app.database.supabase import SupabaseDatabase
-from app.camera.video import VideoCamera, scan_available_cameras
-from app.detection.privacy import PrivacyAnonymizer
 from app.analytics.fleet import FleetManager
 from app.api.schemas import CopilotChatRequest, CopilotConfigRequest, CopilotTestConnectionRequest
-from app.theft.engine import TheftDetectionEngine, SNAPSHOT_DIR
 from app.theft.config import get_theft_config, update_theft_config
 from app.analytics.anomaly_engine import RetailAnomalyEngine
 from app.security.encryption import encrypt_data, decrypt_data, encryption_service
 from app.security.sanitizer import sanitize_rtsp_url, mask_credential, mask_email, mask_phone
 from app.security.auth import get_current_user, require_role
+
+if RUN_EDGE_AI:
+    from app.detection.detector import ObjectDetector
+    from app.camera.video import VideoCamera, scan_available_cameras
+    from app.detection.privacy import PrivacyAnonymizer
+    from app.theft.engine import TheftDetectionEngine, SNAPSHOT_DIR
+else:
+    ObjectDetector = None
+    VideoCamera = None
+    scan_available_cameras = lambda max_devices=4: []
+    PrivacyAnonymizer = None
+    TheftDetectionEngine = None
+    SNAPSHOT_DIR = DATA_DIR / "snapshots"
 
 
 router = APIRouter()
@@ -75,18 +91,127 @@ recognizer = ProductRecognizer(matcher)
 counter = InventoryCounter()
 smoother = TemporalSmoother(window_size=7)
 stock_analyzer = StockAnalyzer(catalog)
-detector = ObjectDetector(
-    model_path=YOLO_MODEL,
-    confidence=CONFIDENCE,
-    product_model_path=PRODUCT_MODEL,
-    confidence_threshold=CONFIDENCE_THRESHOLD,
-    products_config=PRODUCTS_CONFIG
-)
+# Cloud Fallback Containers for ₹0 Headless Cloud Deployment (RUN_EDGE_AI=False)
+class DummyCloudCamera:
+    def __init__(self, source="EDGE_STREAM"):
+        self.source = source
+        self.is_numeric = False
+        self.has_looped = False
+    def get_frame(self):
+        return None
+    def get_source_info(self):
+        return {
+            "type": "CLOUD_INGESTION",
+            "source": "EDGE_CONNECTED",
+            "status": "RECEIVING_TELEMETRY",
+            "is_webcam": False,
+            "is_opened": False
+        }
+    def set_source(self, source):
+        self.source = str(source)
+        return True
+    def release(self):
+        pass
+
+class DummyCloudDetector:
+    def __init__(self):
+        self.mode = "CLOUD_HUB"
+        self.confidence_threshold = CONFIDENCE_THRESHOLD
+        self.product_model_path = PRODUCT_MODEL
+        self.is_webcam = False
+        self.is_synthetic_demo = False
+    def detect(self, frame):
+        return []
+    def set_active_source(self, source):
+        pass
+
+class DummyPrivacyAnonymizer:
+    def __init__(self, blur_strength: int = 41):
+        self.blur_strength = blur_strength
+        self.privacy_mode_enabled = False
+        self.blur_faces = True
+
+    def toggle_privacy_mode(self, enabled: Optional[bool] = None) -> bool:
+        if enabled is not None:
+            self.privacy_mode_enabled = enabled
+        else:
+            self.privacy_mode_enabled = not self.privacy_mode_enabled
+        return self.privacy_mode_enabled
+
+    def toggle_face_blur(self, enabled: Optional[bool] = None) -> bool:
+        if enabled is not None:
+            self.blur_faces = enabled
+        else:
+            self.blur_faces = not self.blur_faces
+        return self.blur_faces
+
+    def process_frame(self, frame: Any, person_bboxes: Any) -> Any:
+        return frame
+
+class DummyTheftEngine:
+    def __init__(self, camera_id="camera_01", local_db=None, supabase_db=None):
+        self.camera_id = camera_id
+        self.local_db = local_db
+        self.supabase_db = supabase_db
+        self.active_events = {}
+        self.config = get_theft_config()
+        class DummyZoneMgr:
+            def to_dict_list(self):
+                return []
+            def update_zones(self, zones):
+                pass
+        class DummyRiskEngine:
+            def __init__(self, cfg):
+                self.config = cfg
+        self.zone_mgr = DummyZoneMgr()
+        self.risk_engine = DummyRiskEngine(self.config)
+
+    def reset_cycle(self):
+        pass
+
+    def process_frame(self, frame, recognized_detections, timestamp=0):
+        return []
+
+    def annotate_cctv_frame(self, frame):
+        return frame
+
+    def update_event_status(self, event_id, new_status):
+        if event_id in self.active_events:
+            self.active_events[event_id]["status"] = new_status
+            return True
+        return False
+
+    def simulate_demo_event(self, frame=None):
+        event_id = f"THEFT_SIM_{int(time.time())}"
+        payload = {
+            "event_id": event_id,
+            "camera_id": self.camera_id,
+            "risk_score": 88,
+            "risk_level": "HIGH",
+            "event_type": "SUSPICIOUS_CONCEALMENT",
+            "status": "ACTIVE",
+            "description": "Simulated retail loss incident in cloud operations hub",
+            "created_at": time.strftime("%Y-%m-%dT%H:%M:%S")
+        }
+        self.active_events[event_id] = payload
+        return payload
+
+if RUN_EDGE_AI:
+    detector = ObjectDetector(
+        model_path=YOLO_MODEL,
+        confidence=CONFIDENCE,
+        product_model_path=PRODUCT_MODEL,
+        confidence_threshold=CONFIDENCE_THRESHOLD,
+        products_config=PRODUCTS_CONFIG
+    )
+else:
+    detector = DummyCloudDetector()
+
 tracker = CentroidTracker()
 traffic = TrafficAnalytics(zones=shelf_zones, entrance_zone=entrance_zone, exit_zone=exit_zone)
 queue = QueueAnalytics(queue_zone=queue_zone, threshold=QUEUE_ALERT_THRESHOLD)
 shelf_analytics = ShelfAnalytics()
-price_ocr = PriceTagOCR(catalog)
+price_ocr = PriceTagOCR(catalog, enabled=RUN_EDGE_AI)
 ledger = HashgraphAuditLedger()
 forecaster = StockoutForecaster(catalog)
 brain = RetailStoreBrain(catalog)
@@ -104,11 +229,16 @@ weather_service = WeatherService()
 demand_forecaster = DemandForecaster(catalog, inventory_ledger, weather_service)
 
 # Camera Engine & Privacy / Fleet Services
-camera = VideoCamera(CAMERA_SOURCE)
-detector.set_active_source(CAMERA_SOURCE)
-privacy_anonymizer = PrivacyAnonymizer()
+if RUN_EDGE_AI:
+    camera = VideoCamera(CAMERA_SOURCE)
+    detector.set_active_source(CAMERA_SOURCE)
+    privacy_anonymizer = PrivacyAnonymizer()
+    theft_engine = TheftDetectionEngine(camera_id="camera_01", local_db=local_db, supabase_db=supabase_db)
+else:
+    camera = DummyCloudCamera()
+    privacy_anonymizer = DummyPrivacyAnonymizer()
+    theft_engine = DummyTheftEngine(camera_id="camera_01", local_db=local_db, supabase_db=supabase_db)
 fleet_manager = FleetManager()
-theft_engine = TheftDetectionEngine(camera_id="camera_01", local_db=local_db, supabase_db=supabase_db)
 anomaly_engine = RetailAnomalyEngine(local_db=local_db, supabase_db=supabase_db, catalog=catalog)
 
 # Global State Container
@@ -415,9 +545,12 @@ def background_ai_pipeline():
 
         time.sleep(0.02)
 
-# Start AI Engine
-pipeline_thread = threading.Thread(target=background_ai_pipeline, daemon=True)
-pipeline_thread.start()
+# Start AI Engine (Only active on Edge PC; skipped in headless Cloud mode)
+if RUN_EDGE_AI:
+    pipeline_thread = threading.Thread(target=background_ai_pipeline, daemon=True)
+    pipeline_thread.start()
+else:
+    pipeline_thread = None
 
 # ==================== API ENDPOINTS ====================
 
@@ -460,6 +593,9 @@ async def detect_uploaded_image(file: UploadFile = File(...)):
     Upload a real product photo and run it directly through the active detector.
     Allows verifying the SKU detector on real store photos independent of the synthetic demo video.
     """
+    if not RUN_EDGE_AI or cv2 is None or np is None:
+        return {"success": False, "error": "Edge CV inference not available in Cloud Hub mode"}
+
     contents = await file.read()
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -2011,14 +2147,51 @@ def acknowledge_alert(alert_id: str):
 def get_historical_data(limit: int = Query(30, ge=5, le=100)):
     return local_db.get_recent_history(limit=limit)
 
+# Static fallback JPEG for cloud hub mode (1x1 pixel JPEG, minimal byte payload)
+_STATIC_CLOUD_JPEG = (
+    b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00\x08'
+    b'\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13'
+    b'\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' \",#\x1c\x1c(7),01444\x1f\'9=82<.342'
+    b'\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05'
+    b'\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07'
+    b'\x08\t\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9'
+)
+
+def _get_cloud_banner_jpeg() -> bytes:
+    if cv2 is not None and np is not None:
+        try:
+            info_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+            cv2.rectangle(info_frame, (40, 40), (1240, 680), (30, 41, 59), -1)
+            cv2.rectangle(info_frame, (40, 40), (1240, 680), (56, 189, 248), 2)
+            cv2.putText(info_frame, "SMARTRETAIL AI - CLOUD OPERATIONS HUB", (100, 260),
+                        cv2.FONT_HERSHEY_DUPLEX, 1.1, (255, 255, 255), 2)
+            cv2.putText(info_frame, "EDGE INFERENCE ACTIVE: Stream is processed locally on Edge PC.", (100, 340),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (148, 163, 184), 2)
+            cv2.putText(info_frame, "Telemetry, Shopper Analytics & Alerts synced live via Supabase.", (100, 410),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (52, 211, 153), 2)
+            ok, jpeg = cv2.imencode(".jpg", info_frame)
+            if ok:
+                return jpeg.tobytes()
+        except Exception:
+            pass
+    return _STATIC_CLOUD_JPEG
+
 @router.get("/video/feed")
 def video_feed(cam: int = Query(1, ge=1, le=4)):
     def frame_generator():
+        if not RUN_EDGE_AI:
+            frame_bytes = _get_cloud_banner_jpeg()
+            while state.running:
+                yield (b"--frame\r\n"
+                       b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
+                time.sleep(2.0)
+            return
+
         while state.running:
             with state.lock:
                 frame = state.annotated_frame
             
-            if frame is not None:
+            if frame is not None and cv2 is not None:
                 display_frame = frame
                 if cam == 2:
                     display_frame = frame[250:720, 600:1280]

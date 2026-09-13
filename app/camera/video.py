@@ -1,4 +1,7 @@
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import time
 import threading
 from pathlib import Path
@@ -9,6 +12,8 @@ def scan_available_cameras(max_devices=4):
     Scans hardware camera indices (0 to max_devices-1) to detect active webcams.
     Returns a list of dicts with device index, resolution, and descriptive label.
     """
+    if cv2 is None:
+        return []
     cameras = []
     for idx in range(max_devices):
         cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
@@ -53,6 +58,8 @@ class VideoCamera:
         self._open_stream()
 
     def _open_stream(self):
+        if cv2 is None:
+            return
         if self.cap is not None:
             self.cap.release()
             self.cap = None

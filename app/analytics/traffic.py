@@ -1,5 +1,8 @@
 import time
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 from collections import defaultdict, deque
 
 class TrafficAnalytics:
@@ -40,7 +43,10 @@ class TrafficAnalytics:
         # Spatial heatmap density grid (36 x 20 resolution = 720 cells)
         self.grid_cols = 36
         self.grid_rows = 20
-        self.heatmap_grid = np.zeros((self.grid_rows, self.grid_cols), dtype=np.float32)
+        if np is not None:
+            self.heatmap_grid = np.zeros((self.grid_rows, self.grid_cols), dtype=np.float32)
+        else:
+            self.heatmap_grid = [[0.0 for _ in range(self.grid_cols)] for _ in range(self.grid_rows)]
 
     def _get_zone_name(self, cx, cy):
         for z in self.zones:
@@ -72,7 +78,10 @@ class TrafficAnalytics:
             # Update heatmap grid density
             gx = int(min(self.grid_cols - 1, max(0, (cx / 1280.0) * self.grid_cols)))
             gy = int(min(self.grid_rows - 1, max(0, (cy / 720.0) * self.grid_rows)))
-            self.heatmap_grid[gy, gx] += 1.0
+            if np is not None and isinstance(self.heatmap_grid, np.ndarray):
+                self.heatmap_grid[gy, gx] += 1.0
+            else:
+                self.heatmap_grid[gy][gx] += 1.0
 
             curr_zone = self._get_zone_name(cx, cy)
 
@@ -148,8 +157,13 @@ class TrafficAnalytics:
         else:
             avg_dwell = 45.0
 
-        max_heat = max(1.0, float(np.max(self.heatmap_grid)))
-        normalized_heat = (self.heatmap_grid / max_heat).tolist()
+        if np is not None and isinstance(self.heatmap_grid, np.ndarray):
+            max_heat = max(1.0, float(np.max(self.heatmap_grid)))
+            normalized_heat = (self.heatmap_grid / max_heat).tolist()
+        else:
+            flat = [val for row in self.heatmap_grid for val in row]
+            max_heat = max(1.0, max(flat) if flat else 1.0)
+            normalized_heat = [[round(val / max_heat, 3) for val in row] for row in self.heatmap_grid]
 
         staff_count = len(staff)
         customer_count = len(customers)

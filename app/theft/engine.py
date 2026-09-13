@@ -1,5 +1,8 @@
 import os
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import time
 import uuid
 import json
@@ -166,7 +169,7 @@ class TheftDetectionEngine:
         - Warning colored bounding box around persons with elevated risk
         - High-Risk Top Warning Alert Banner
         """
-        if frame is None or not self.config.enabled:
+        if frame is None or not self.config.enabled or cv2 is None:
             return frame
 
         # 1. Draw zones
@@ -239,21 +242,24 @@ class TheftDetectionEngine:
         snapshot_filename = f"{event_id}.jpg"
         snapshot_path = str(SNAPSHOT_DIR / snapshot_filename)
         
-        if frame is not None:
-            snap_img = frame.copy()
-            # Draw synthetic suspect box on demo frame (near exit or shelf)
-            cv2.rectangle(snap_img, (1160, 220), (1260, 480), (0, 0, 255), 2)
-            cv2.putText(snap_img, "Subject #17 | Risk: 87%", (1160, 210), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-            cv2.imwrite(snapshot_path, snap_img)
-        else:
-            # Create a blank informative canvas if frame is absent
-            import numpy as np
-            canvas = np.zeros((720, 1280, 3), dtype=np.uint8)
-            canvas[:] = (20, 28, 44)
-            cv2.putText(canvas, "SmartRetail AI - Loss Prevention Evidence Frame", (40, 60), cv2.FONT_HERSHEY_DUPLEX, 0.8, (56, 189, 248), 2)
-            cv2.rectangle(canvas, (900, 200), (1150, 600), (0, 0, 255), 2)
-            cv2.putText(canvas, "Person #17 (Risk: 87%)", (900, 190), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            cv2.imwrite(snapshot_path, canvas)
+        if cv2 is not None:
+            if frame is not None:
+                snap_img = frame.copy()
+                # Draw synthetic suspect box on demo frame (near exit or shelf)
+                cv2.rectangle(snap_img, (1160, 220), (1260, 480), (0, 0, 255), 2)
+                cv2.putText(snap_img, "Subject #17 | Risk: 87%", (1160, 210), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                cv2.imwrite(snapshot_path, snap_img)
+            else:
+                try:
+                    import numpy as np
+                    canvas = np.zeros((720, 1280, 3), dtype=np.uint8)
+                    canvas[:] = (20, 28, 44)
+                    cv2.putText(canvas, "SmartRetail AI - Loss Prevention Evidence Frame", (40, 60), cv2.FONT_HERSHEY_DUPLEX, 0.8, (56, 189, 248), 2)
+                    cv2.rectangle(canvas, (900, 200), (1150, 600), (0, 0, 255), 2)
+                    cv2.putText(canvas, "Person #17 (Risk: 87%)", (900, 190), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                    cv2.imwrite(snapshot_path, canvas)
+                except Exception:
+                    pass
 
         # Build chronological timeline with realistic human timestamps
         t_base = t_now - 26.0

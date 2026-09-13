@@ -15,8 +15,14 @@ When a real custom SKU model is trained and saved to 'models/trained/best.pt',
 the system automatically switches to `source="trained_sku_model"` ('TRAINED MODEL').
 """
 
-import cv2
-import numpy as np
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+try:
+    import numpy as np
+except ImportError:
+    np = None
 from typing import List, Tuple
 from app.detection.results import Detection
 

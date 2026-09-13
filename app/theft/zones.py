@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
-from shapely.geometry import Point, Polygon
+try:
+    from shapely.geometry import Point, Polygon
+except ImportError:
+    Point, Polygon = None, None
 
 from app.config.settings import DATA_DIR
 
@@ -27,7 +30,9 @@ class StoreZone:
         self.polygon = self._build_polygon(coordinates)
         self.bbox = self._calculate_bbox()
 
-    def _build_polygon(self, coords: List[Any]) -> Polygon:
+    def _build_polygon(self, coords: List[Any]):
+        if Polygon is None:
+            return None
         # Check if rectangle [x1, y1, x2, y2]
         if len(coords) == 4 and all(isinstance(c, (int, float)) for c in coords):
             x1, y1, x2, y2 = coords
@@ -41,13 +46,25 @@ class StoreZone:
             return Polygon([(0, 0), (0, 0), (0, 0)])
 
     def _calculate_bbox(self) -> Tuple[int, int, int, int]:
+        if self.polygon is None:
+            if len(self.coordinates) == 4 and all(isinstance(c, (int, float)) for c in self.coordinates):
+                return (int(self.coordinates[0]), int(self.coordinates[1]), int(self.coordinates[2]), int(self.coordinates[3]))
+            return (0, 0, 0, 0)
         minx, miny, maxx, maxy = self.polygon.bounds
         return (int(minx), int(miny), int(maxx), int(maxy))
 
     def contains_point(self, cx: float, cy: float) -> bool:
+        if self.polygon is None or Point is None:
+            x1, y1, x2, y2 = self.bbox
+            return x1 <= cx <= x2 and y1 <= cy <= y2
         return self.polygon.contains(Point(cx, cy)) or self.polygon.touches(Point(cx, cy))
 
     def distance_to_point(self, cx: float, cy: float) -> float:
+        if self.polygon is None or Point is None:
+            x1, y1, x2, y2 = self.bbox
+            bx = max(x1, min(cx, x2))
+            by = max(y1, min(cy, y2))
+            return ((cx - bx) ** 2 + (cy - by) ** 2) ** 0.5
         return self.polygon.distance(Point(cx, cy))
 
     def to_dict(self) -> Dict[str, Any]:

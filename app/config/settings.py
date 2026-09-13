@@ -15,6 +15,11 @@ VIDEO_DIR = ROOT_DIR / "videos"
 OUTPUT_DIR = ROOT_DIR / "output"
 DASHBOARD_DIR = ROOT_DIR / "dashboard"
 
+# Deployment Mode (Edge AI vs. Headless Cloud Hub)
+# In cloud mode (RUN_EDGE_AI=false), OpenCV and PyTorch are skipped (<80MB RAM).
+RUN_EDGE_AI = os.getenv("RUN_EDGE_AI", "true").lower() in ("true", "1", "yes")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "edge" if RUN_EDGE_AI else "cloud")
+
 YOLO_MODEL = os.getenv("YOLO_MODEL", str(MODELS_DIR / "yolo11n.pt"))
 PRODUCT_MODEL = os.getenv("PRODUCT_MODEL", str(MODELS_DIR / "trained" / "best.pt"))
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.75"))

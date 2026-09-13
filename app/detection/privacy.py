@@ -7,9 +7,15 @@ Ensures full compliance with privacy standards (GDPR, India DPDP Act) by:
 3. Ensuring zero personally identifiable biometric data (PII) is stored or streamed.
 """
 
-import cv2
-import numpy as np
-from typing import List, Tuple, Optional
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+try:
+    import numpy as np
+except ImportError:
+    np = None
+from typing import List, Tuple, Optional, Any
 
 class PrivacyAnonymizer:
     """
@@ -35,12 +41,12 @@ class PrivacyAnonymizer:
             self.blur_faces = not self.blur_faces
         return self.blur_faces
 
-    def apply_face_blur(self, frame: np.ndarray, person_bboxes: List[Tuple[int, int, int, int]]) -> np.ndarray:
+    def apply_face_blur(self, frame: Any, person_bboxes: List[Tuple[int, int, int, int]]) -> Any:
         """
         Applies heavy Gaussian blurring to the upper head/face portion of detected persons.
         Runs entirely on-device with sub-millisecond latency overhead.
         """
-        if frame is None or not person_bboxes:
+        if frame is None or not person_bboxes or cv2 is None:
             return frame
 
         anonymized = frame.copy()
@@ -77,12 +83,15 @@ class PrivacyAnonymizer:
 
         return anonymized
 
-    def apply_privacy_silhouette(self, frame: np.ndarray, person_bboxes: List[Tuple[int, int, int, int]]) -> np.ndarray:
+    def apply_privacy_silhouette(self, frame: Any, person_bboxes: List[Tuple[int, int, int, int]]) -> Any:
         """
         Anonymized silhouette mode:
         Replaces the raw video background with a darkened privacy canvas
         leaving only anonymized pixelated silhouettes.
         """
+        if frame is None or cv2 is None or np is None:
+            return frame
+
         h, w, _ = frame.shape
         canvas = np.full((h, w, 3), (20, 24, 33), dtype=np.uint8)
 
@@ -107,9 +116,9 @@ class PrivacyAnonymizer:
 
     def process_frame(
         self,
-        frame: np.ndarray,
+        frame: Any,
         person_bboxes: List[Tuple[int, int, int, int]]
-    ) -> np.ndarray:
+    ) -> Any:
         if frame is None:
             return frame
 
