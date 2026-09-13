@@ -2,6 +2,7 @@ import os
 import yaml
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 from app.security.encryption import encrypt_data, decrypt_data
 from app.security.sanitizer import mask_credential, sanitize_rtsp_url
 
